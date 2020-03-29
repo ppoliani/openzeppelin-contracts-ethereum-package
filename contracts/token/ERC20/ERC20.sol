@@ -5,6 +5,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../../GSN/Context.sol";
 import "./IERC20.sol";
 import "../../math/SafeMath.sol";
+import "./ERC20State.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -33,24 +34,25 @@ import "../../math/SafeMath.sol";
 contract ERC20 is Initializable, Context, IERC20 {
     using SafeMath for uint256;
 
+    ERC20State private _state;
 
 
-    function initialize() public initializer {
-
+    function initialize(ERC20State state) public initializer {
+        _state = state;
     }
 
     /**
      * @dev See {IERC20-totalSupply}.
      */
     function totalSupply() public view returns (uint256) {
-        return _totalSupply;
+        return _state.getTotalSupply();
     }
 
     /**
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
+        return _state.getBalance(account);
     }
 
     /**
@@ -70,7 +72,7 @@ contract ERC20 is Initializable, Context, IERC20 {
      * @dev See {IERC20-allowance}.
      */
     function allowance(address owner, address spender) public view returns (uint256) {
-        return _allowances[owner][spender];
+        return _state.getAllowance(owner, spender);
     }
 
     /**
@@ -98,8 +100,10 @@ contract ERC20 is Initializable, Context, IERC20 {
      * `amount`.
      */
     function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
+        uint256 newAllowance = allowance(sender, _msgSender()).sub(amount, "ERC20: transfer amount exceeds allowance");
+
         _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
+        _approve(sender, _msgSender(), allowance);
         return true;
     }
 
@@ -116,7 +120,9 @@ contract ERC20 is Initializable, Context, IERC20 {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
+        uint256 newAllowance = allowance(_msgSender(), spender).add(addedValue);
+
+        _approve(_msgSender(), spender, newAllowance);
         return true;
     }
 
@@ -135,7 +141,9 @@ contract ERC20 is Initializable, Context, IERC20 {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
+        uint256 newAllowance = allowance(_msgSender(), spender).sub(subtractedValue, "ERC20: decreased allowance below zero");
+
+        _approve(_msgSender(), spender, newAllowance);
         return true;
     }
 
@@ -157,8 +165,12 @@ contract ERC20 is Initializable, Context, IERC20 {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
-        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
+        uint256 senderBalance = balanceOf(sender);
+        uint256 recipientBalance = balanceOf(recipient);
+
+        _state.setBalance(sender, senderBalance.sub(amount, "ERC20: transfer amount exceeds balance"));
+        _state.setBalance(recipient, recipientBalance.add(amount));
+
         emit Transfer(sender, recipient, amount);
     }
 
@@ -174,8 +186,11 @@ contract ERC20 is Initializable, Context, IERC20 {
     function _mint(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: mint to the zero address");
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        uint256 totalSupply = _state.getTotalSupply();
+        _state.setTotalSupply(totalSupply.add(amount));
+        uint256 accountBalance = balanceOf(account);
+        _state.setBalance(account, accountBalance.add(amount));
+
         emit Transfer(address(0), account, amount);
     }
 
@@ -193,8 +208,11 @@ contract ERC20 is Initializable, Context, IERC20 {
     function _burn(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
+        uint256 accountBalance = balanceOf(account);
+        _state.setBalance(account, accountBalance.sub(amount, "ERC20: burn amount exceeds balance"));
+        uint256 totalSupply = _state.getTotalSupply();
+        _state.setTotalSupply(totalSupply.sub(amount));
+
         emit Transfer(account, address(0), amount);
     }
 
@@ -215,7 +233,8 @@ contract ERC20 is Initializable, Context, IERC20 {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
+        _state.setAllowance(owner, spender, amount);
+
         emit Approval(owner, spender, amount);
     }
 
@@ -226,8 +245,9 @@ contract ERC20 is Initializable, Context, IERC20 {
      * See {_burn} and {_approve}.
      */
     function _burnFrom(address account, uint256 amount) internal {
+        uint256 newAllowance = _state.getAllowance(account, _msgSender()).sub(amount, "ERC20: burn amount exceeds allowance")
         _burn(account, amount);
-        _approve(account, _msgSender(), _allowances[account][_msgSender()].sub(amount, "ERC20: burn amount exceeds allowance"));
+        _approve(account, _msgSender(), newAllowance);
     }
 
     uint256[50] private ______gap;
