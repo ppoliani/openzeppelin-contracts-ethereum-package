@@ -244,7 +244,7 @@ contract ERC20 is Initializable, Context, IERC20 {
      * See {_burn} and {_approve}.
      */
     function _burnFrom(address account, uint256 amount) internal {
-        uint256 newAllowance = _state.getAllowance(account, _msgSender()).sub(amount, "ERC20: burn amount exceeds allowance")
+        uint256 newAllowance = _state.getAllowance(account, _msgSender()).sub(amount, "ERC20: burn amount exceeds allowance");
         _burn(account, amount);
         _approve(account, _msgSender(), newAllowance);
     }
