@@ -102,7 +102,7 @@ contract ERC20 is Initializable, Context, IERC20 {
         uint256 newAllowance = allowance(sender, _msgSender()).sub(amount, "ERC20: transfer amount exceeds allowance");
 
         _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), allowance);
+        _approve(sender, _msgSender(), newAllowance);
         return true;
     }
 
