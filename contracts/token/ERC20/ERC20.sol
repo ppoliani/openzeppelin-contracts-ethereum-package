@@ -33,11 +33,11 @@ import "../../math/SafeMath.sol";
 contract ERC20 is Initializable, Context, IERC20 {
     using SafeMath for uint256;
 
-    mapping (address => uint256) private _balances;
 
-    mapping (address => mapping (address => uint256)) private _allowances;
 
-    uint256 private _totalSupply;
+    function initialize() public initializer {
+
+    }
 
     /**
      * @dev See {IERC20-totalSupply}.
