@@ -1,9 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-
-contract ERC20 is Initializable {
+contract ERC20State {
     mapping (address => uint256) private _balances;
     mapping (address => mapping (address => uint256)) private _allowances;
 
@@ -32,6 +30,4 @@ contract ERC20 is Initializable {
     function getTotalSupply() public view returns(uint256) {
         return _totalSupply;
     }
-
-    uint256[50] private ______gap;
 }
