@@ -36,8 +36,7 @@ contract ERC20 is Initializable, Context, IERC20 {
 
     ERC20State private _state;
 
-
-    function initialize(ERC20State state) public initializer {
+    function updateState(ERC20State state) public {
         _state = state;
     }
 
